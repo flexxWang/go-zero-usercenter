@@ -6,6 +6,7 @@ Timeout: 5000
 Auth:
   AccessSecret: "replace-with-a-long-secret"
   AccessExpire: 7200
+  RefreshExpire: 604800
 
 MySQL:
   DataSource: "root:123456@tcp(127.0.0.1:3306)/usercenter?charset=utf8mb4&parseTime=true&loc=Local"
@@ -23,3 +24,5 @@ Cache:
 
 Session:
   TokenPrefix: "usercenter:token:"
+  RefreshTokenPrefix: "usercenter:refresh:token:"
+  RefreshUserPrefix: "usercenter:refresh:user:"

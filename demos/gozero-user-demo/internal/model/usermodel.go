@@ -93,6 +93,40 @@ func (m *UserModel) FindByID(ctx context.Context, id int64) (*User, error) {
 	return user, nil
 }
 
+func (m *UserModel) List(ctx context.Context, page, pageSize int64) ([]*User, int64, error) {
+	var total int64
+	if err := m.db.QueryRowContext(ctx, `SELECT COUNT(1) FROM users`).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	offset := (page - 1) * pageSize
+	rows, err := m.db.QueryContext(ctx, `
+		SELECT id, email, password_hash, nickname, bio, avatar, created_at, updated_at
+		FROM users
+		ORDER BY id DESC
+		LIMIT ? OFFSET ?
+	`, pageSize, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	users := make([]*User, 0, pageSize)
+	for rows.Next() {
+		user, err := scanUser(rows)
+		if err != nil {
+			return nil, 0, err
+		}
+		users = append(users, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	return users, total, nil
+}
+
 func (m *UserModel) UpdateProfile(ctx context.Context, id int64, patch UserPatch) (*User, error) {
 	sets := make([]string, 0, 4)
 	args := make([]any, 0, 4)
@@ -137,6 +171,26 @@ func (m *UserModel) UpdatePassword(ctx context.Context, id int64, passwordHash s
 		SET password_hash = ?, updated_at = NOW()
 		WHERE id = ?
 	`, passwordHash, id)
+	if err != nil {
+		return err
+	}
+
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return m.deleteCache(ctx, id)
+}
+
+func (m *UserModel) DeleteByID(ctx context.Context, id int64) error {
+	result, err := m.db.ExecContext(ctx, `
+		DELETE FROM users
+		WHERE id = ?
+	`, id)
 	if err != nil {
 		return err
 	}

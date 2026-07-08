@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"strconv"
 	"strings"
+	"time"
 
 	xauth "gozero-user-demo/internal/auth"
 	"gozero-user-demo/internal/svc"
@@ -42,7 +43,7 @@ func (l *LoginLogic) Login(req *types.LoginReq) (resp *types.LoginResp, err erro
 		return nil, xerr.NewUnauthorized("email or password is incorrect")
 	}
 
-	token, expireAt, refreshAfter, err := xauth.GenerateToken(
+	token, expireAt, _, err := xauth.GenerateToken(
 		l.svcCtx.Config.Auth.AccessSecret,
 		l.svcCtx.Config.Auth.AccessExpire,
 		user.ID,
@@ -51,6 +52,13 @@ func (l *LoginLogic) Login(req *types.LoginReq) (resp *types.LoginResp, err erro
 	if err != nil {
 		return nil, xerr.NewInternal("failed to generate access token")
 	}
+
+	refreshToken, err := xauth.GenerateRefreshToken()
+	if err != nil {
+		return nil, xerr.NewInternal("failed to generate refresh token")
+	}
+
+	refreshExpireAt := time.Now().Unix() + l.svcCtx.Config.Auth.RefreshExpire
 
 	if err := l.svcCtx.Redis.SetexCtx(
 		l.ctx,
@@ -61,9 +69,38 @@ func (l *LoginLogic) Login(req *types.LoginReq) (resp *types.LoginResp, err erro
 		return nil, xerr.NewInternal("failed to persist login session")
 	}
 
+	if oldRefreshToken, err := l.svcCtx.Redis.GetCtx(
+		l.ctx,
+		xauth.RefreshUserKey(l.svcCtx.Config.Session.RefreshUserPrefix, user.ID),
+	); err == nil {
+		_, _ = l.svcCtx.Redis.DelCtx(
+			l.ctx,
+			xauth.RefreshTokenKey(l.svcCtx.Config.Session.RefreshTokenPrefix, oldRefreshToken),
+		)
+	}
+
+	if err := l.svcCtx.Redis.SetexCtx(
+		l.ctx,
+		xauth.RefreshTokenKey(l.svcCtx.Config.Session.RefreshTokenPrefix, refreshToken),
+		strconv.FormatInt(user.ID, 10),
+		int(l.svcCtx.Config.Auth.RefreshExpire),
+	); err != nil {
+		return nil, xerr.NewInternal("failed to persist refresh session")
+	}
+
+	if err := l.svcCtx.Redis.SetexCtx(
+		l.ctx,
+		xauth.RefreshUserKey(l.svcCtx.Config.Session.RefreshUserPrefix, user.ID),
+		refreshToken,
+		int(l.svcCtx.Config.Auth.RefreshExpire),
+	); err != nil {
+		return nil, xerr.NewInternal("failed to persist refresh session index")
+	}
+
 	return &types.LoginResp{
-		AccessToken:  token,
-		AccessExpire: expireAt,
-		RefreshAfter: refreshAfter,
+		AccessToken:   token,
+		AccessExpire:  expireAt,
+		RefreshToken:  refreshToken,
+		RefreshExpire: refreshExpireAt,
 	}, nil
 }

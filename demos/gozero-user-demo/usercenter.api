@@ -14,7 +14,8 @@ type LoginReq {
 type LoginResp {
 	AccessToken  string `json:"accessToken"`
 	AccessExpire int64  `json:"accessExpire"`
-	RefreshAfter int64  `json:"refreshAfter"`
+	RefreshToken string `json:"refreshToken"`
+	RefreshExpire int64 `json:"refreshExpire"`
 }
 
 type EmptyResp {}
@@ -36,6 +37,11 @@ type GetUserReq {
 	UserId int64 `path:"userId"`
 }
 
+type ListUsersReq {
+	Page     int64 `form:"page,optional"`
+	PageSize int64 `form:"pageSize,optional"`
+}
+
 type UpdateProfileReq {
 	Nickname *string `json:"nickname,optional"`
 	Bio      *string `json:"bio,optional"`
@@ -45,6 +51,17 @@ type UpdateProfileReq {
 type ChangePasswordReq {
 	OldPassword string `json:"oldPassword"`
 	NewPassword string `json:"newPassword"`
+}
+
+type RefreshTokenReq {
+	RefreshToken string `json:"refreshToken"`
+}
+
+type UserListResp {
+	Items    []UserProfile `json:"items"`
+	Page     int64         `json:"page"`
+	PageSize int64         `json:"pageSize"`
+	Total    int64         `json:"total"`
 }
 
 @server(
@@ -57,6 +74,17 @@ service usercenter-api {
 
 	@handler Login
 	post /auth/login (LoginReq) returns (LoginResp)
+}
+
+@server(
+	jwt: Auth
+	middleware: Audit
+	group: auth
+	prefix: /api/v1
+)
+service usercenter-api {
+	@handler Refresh
+	post /auth/refresh (RefreshTokenReq) returns (LoginResp)
 
 	@handler Logout
 	post /auth/logout returns (EmptyResp)
@@ -75,9 +103,15 @@ service usercenter-api {
 	@handler GetUser
 	get /users/:userId (GetUserReq) returns (UserResp)
 
+	@handler ListUsers
+	get /users (ListUsersReq) returns (UserListResp)
+
 	@handler UpdateProfile
 	patch /users/me (UpdateProfileReq) returns (UserResp)
 
 	@handler ChangePassword
 	patch /users/me/password (ChangePasswordReq) returns (EmptyResp)
+
+	@handler DeleteProfile
+	delete /users/me returns (EmptyResp)
 }

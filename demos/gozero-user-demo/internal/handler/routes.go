@@ -34,19 +34,14 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 			[]rest.Route{
 				{
 					Method:  http.MethodPost,
+					Path:    "/auth/refresh",
+					Handler: auth.RefreshHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodPost,
 					Path:    "/auth/logout",
 					Handler: auth.LogoutHandler(serverCtx),
 				},
-			}...,
-		),
-		rest.WithJwt(serverCtx.Config.Auth.AccessSecret),
-		rest.WithPrefix("/api/v1"),
-	)
-
-	server.AddRoutes(
-		rest.WithMiddlewares(
-			[]rest.Middleware{serverCtx.Audit},
-			[]rest.Route{
 				{
 					Method:  http.MethodGet,
 					Path:    "/users/me",
@@ -58,6 +53,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Handler: user.GetUserHandler(serverCtx),
 				},
 				{
+					Method:  http.MethodGet,
+					Path:    "/users",
+					Handler: user.ListUsersHandler(serverCtx),
+				},
+				{
 					Method:  http.MethodPatch,
 					Path:    "/users/me",
 					Handler: user.UpdateProfileHandler(serverCtx),
@@ -66,6 +66,11 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 					Method:  http.MethodPatch,
 					Path:    "/users/me/password",
 					Handler: user.ChangePasswordHandler(serverCtx),
+				},
+				{
+					Method:  http.MethodDelete,
+					Path:    "/users/me",
+					Handler: user.DeleteProfileHandler(serverCtx),
 				},
 			}...,
 		),

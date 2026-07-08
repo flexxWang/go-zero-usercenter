@@ -40,6 +40,23 @@ func (r GetUserReq) Validate() error {
 	return nil
 }
 
+func (r *ListUsersReq) Validate() error {
+	if r.Page == 0 {
+		r.Page = 1
+	}
+	if r.PageSize == 0 {
+		r.PageSize = 10
+	}
+	if r.Page < 1 {
+		return xerr.NewBadRequest("page must be greater than 0")
+	}
+	if r.PageSize < 1 || r.PageSize > 100 {
+		return xerr.NewBadRequest("pageSize must be between 1 and 100")
+	}
+
+	return nil
+}
+
 func (r UpdateProfileReq) Validate() error {
 	if r.Nickname == nil && r.Bio == nil && r.Avatar == nil {
 		return xerr.NewBadRequest("at least one field must be provided")
@@ -69,6 +86,14 @@ func (r ChangePasswordReq) Validate() error {
 	}
 	if r.OldPassword == r.NewPassword {
 		return xerr.NewBadRequest("newPassword must be different from oldPassword")
+	}
+
+	return nil
+}
+
+func (r RefreshTokenReq) Validate() error {
+	if strings.TrimSpace(r.RefreshToken) == "" {
+		return xerr.NewBadRequest("refreshToken is required")
 	}
 
 	return nil

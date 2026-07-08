@@ -19,3 +19,19 @@ func UserResp(user *model.User) *types.UserResp {
 		},
 	}
 }
+
+func UserProfiles(users []*model.User) []types.UserProfile {
+	items := make([]types.UserProfile, 0, len(users))
+	for _, user := range users {
+		items = append(items, types.UserProfile{
+			Id:        user.ID,
+			Email:     user.Email,
+			Nickname:  user.Nickname,
+			Bio:       user.Bio,
+			Avatar:    user.Avatar,
+			CreatedAt: user.CreatedAt.Format(time.RFC3339),
+		})
+	}
+
+	return items
+}

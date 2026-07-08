@@ -1,7 +1,8 @@
-package auth
+package user
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 
 	xauth "gozero-user-demo/internal/auth"
@@ -12,33 +13,39 @@ import (
 	"github.com/zeromicro/go-zero/core/logx"
 )
 
-type LogoutLogic struct {
+type DeleteProfileLogic struct {
 	logx.Logger
 	ctx    context.Context
 	svcCtx *svc.ServiceContext
 }
 
-func NewLogoutLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LogoutLogic {
-	return &LogoutLogic{
+func NewDeleteProfileLogic(ctx context.Context, svcCtx *svc.ServiceContext) *DeleteProfileLogic {
+	return &DeleteProfileLogic{
 		Logger: logx.WithContext(ctx),
 		ctx:    ctx,
 		svcCtx: svcCtx,
 	}
 }
 
-func (l *LogoutLogic) Logout(r *http.Request) (resp *types.EmptyResp, err error) {
-	token := xauth.BearerToken(r.Header.Get("Authorization"))
-	if token == "" {
-		return nil, xerr.NewUnauthorized("missing bearer token")
-	}
-
+func (l *DeleteProfileLogic) DeleteProfile(r *http.Request) (resp *types.EmptyResp, err error) {
 	userID, err := xauth.UserIDFromContext(l.ctx)
 	if err != nil {
 		return nil, xerr.NewUnauthorized("invalid auth context")
 	}
 
-	if _, err := l.svcCtx.Redis.DelCtx(l.ctx, l.svcCtx.Config.Session.TokenPrefix+token); err != nil {
-		return nil, xerr.NewInternal("failed to clear login session")
+	if err := l.svcCtx.UserModel.DeleteByID(l.ctx, userID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, xerr.NewNotFound("user not found")
+		}
+
+		return nil, xerr.NewInternal("failed to delete user")
+	}
+
+	token := xauth.BearerToken(r.Header.Get("Authorization"))
+	if token != "" {
+		if _, err := l.svcCtx.Redis.DelCtx(l.ctx, l.svcCtx.Config.Session.TokenPrefix+token); err != nil {
+			return nil, xerr.NewInternal("failed to clear login session")
+		}
 	}
 
 	refreshUserKey := xauth.RefreshUserKey(l.svcCtx.Config.Session.RefreshUserPrefix, userID)
@@ -47,7 +54,6 @@ func (l *LogoutLogic) Logout(r *http.Request) (resp *types.EmptyResp, err error)
 			return nil, xerr.NewInternal("failed to clear refresh session")
 		}
 	}
-
 	if _, err := l.svcCtx.Redis.DelCtx(l.ctx, refreshUserKey); err != nil {
 		return nil, xerr.NewInternal("failed to clear refresh session index")
 	}

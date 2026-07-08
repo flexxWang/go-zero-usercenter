@@ -13,12 +13,14 @@ type LoginReq struct {
 }
 
 type LoginResp struct {
-	AccessToken  string `json:"accessToken"`
-	AccessExpire int64  `json:"accessExpire"`
-	RefreshAfter int64  `json:"refreshAfter"`
+	AccessToken   string `json:"accessToken"`
+	AccessExpire  int64  `json:"accessExpire"`
+	RefreshToken  string `json:"refreshToken"`
+	RefreshExpire int64  `json:"refreshExpire"`
 }
 
-type EmptyResp struct{}
+type EmptyResp struct {
+}
 
 type UserProfile struct {
 	Id        int64  `json:"id"`
@@ -37,6 +39,11 @@ type GetUserReq struct {
 	UserId int64 `path:"userId"`
 }
 
+type ListUsersReq struct {
+	Page     int64 `form:"page,optional"`
+	PageSize int64 `form:"pageSize,optional"`
+}
+
 type UpdateProfileReq struct {
 	Nickname *string `json:"nickname,optional"`
 	Bio      *string `json:"bio,optional"`
@@ -46,4 +53,15 @@ type UpdateProfileReq struct {
 type ChangePasswordReq struct {
 	OldPassword string `json:"oldPassword"`
 	NewPassword string `json:"newPassword"`
+}
+
+type RefreshTokenReq struct {
+	RefreshToken string `json:"refreshToken"`
+}
+
+type UserListResp struct {
+	Items    []UserProfile `json:"items"`
+	Page     int64         `json:"page"`
+	PageSize int64         `json:"pageSize"`
+	Total    int64         `json:"total"`
 }

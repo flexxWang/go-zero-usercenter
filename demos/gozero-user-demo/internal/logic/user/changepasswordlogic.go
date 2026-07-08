@@ -66,5 +66,15 @@ func (l *ChangePasswordLogic) ChangePassword(r *http.Request, req *types.ChangeP
 		}
 	}
 
+	refreshUserKey := xauth.RefreshUserKey(l.svcCtx.Config.Session.RefreshUserPrefix, userID)
+	if refreshToken, err := l.svcCtx.Redis.GetCtx(l.ctx, refreshUserKey); err == nil {
+		if _, err := l.svcCtx.Redis.DelCtx(l.ctx, xauth.RefreshTokenKey(l.svcCtx.Config.Session.RefreshTokenPrefix, refreshToken)); err != nil {
+			return nil, xerr.NewInternal("failed to clear refresh session")
+		}
+	}
+	if _, err := l.svcCtx.Redis.DelCtx(l.ctx, refreshUserKey); err != nil {
+		return nil, xerr.NewInternal("failed to clear refresh session index")
+	}
+
 	return &types.EmptyResp{}, nil
 }

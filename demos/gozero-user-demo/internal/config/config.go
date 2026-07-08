@@ -8,8 +8,9 @@ import (
 type Config struct {
 	rest.RestConf
 	Auth struct {
-		AccessSecret string
-		AccessExpire int64
+		AccessSecret  string
+		AccessExpire  int64
+		RefreshExpire int64
 	}
 	MySQL struct {
 		DataSource      string
@@ -22,6 +23,8 @@ type Config struct {
 		UserProfileSeconds int
 	}
 	Session struct {
-		TokenPrefix string
+		TokenPrefix        string
+		RefreshTokenPrefix string
+		RefreshUserPrefix  string
 	}
 }

@@ -2,8 +2,11 @@ package auth
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -16,7 +19,6 @@ import (
 func GenerateToken(secret string, expireSeconds int64, userID int64, email string) (string, int64, int64, error) {
 	now := time.Now().Unix()
 	expireAt := now + expireSeconds
-	refreshAfter := now + expireSeconds/2
 
 	claims := jwt.MapClaims{
 		"userId": userID,
@@ -33,7 +35,16 @@ func GenerateToken(secret string, expireSeconds int64, userID int64, email strin
 		return "", 0, 0, err
 	}
 
-	return signed, expireAt, refreshAfter, nil
+	return signed, expireAt, 0, nil
+}
+
+func GenerateRefreshToken() (string, error) {
+	buf := make([]byte, 32)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+
+	return base64.RawURLEncoding.EncodeToString(buf), nil
 }
 
 func UserIDFromContext(ctx context.Context) (int64, error) {
@@ -64,4 +75,12 @@ func BearerToken(header string) string {
 	}
 
 	return strings.TrimSpace(strings.TrimPrefix(header, "Bearer "))
+}
+
+func RefreshTokenKey(prefix, token string) string {
+	return prefix + token
+}
+
+func RefreshUserKey(prefix string, userID int64) string {
+	return fmt.Sprintf("%s%d", prefix, userID)
 }
