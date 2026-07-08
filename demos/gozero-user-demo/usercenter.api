@@ -1,0 +1,83 @@
+syntax = "v1"
+
+type RegisterReq {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Nickname string `json:"nickname"`
+}
+
+type LoginReq {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type LoginResp {
+	AccessToken  string `json:"accessToken"`
+	AccessExpire int64  `json:"accessExpire"`
+	RefreshAfter int64  `json:"refreshAfter"`
+}
+
+type EmptyResp {}
+
+type UserProfile {
+	Id        int64  `json:"id"`
+	Email     string `json:"email"`
+	Nickname  string `json:"nickname"`
+	Bio       string `json:"bio"`
+	Avatar    string `json:"avatar"`
+	CreatedAt string `json:"createdAt"`
+}
+
+type UserResp {
+	User UserProfile `json:"user"`
+}
+
+type GetUserReq {
+	UserId int64 `path:"userId"`
+}
+
+type UpdateProfileReq {
+	Nickname *string `json:"nickname,optional"`
+	Bio      *string `json:"bio,optional"`
+	Avatar   *string `json:"avatar,optional"`
+}
+
+type ChangePasswordReq {
+	OldPassword string `json:"oldPassword"`
+	NewPassword string `json:"newPassword"`
+}
+
+@server(
+	group: auth
+	prefix: /api/v1
+)
+service usercenter-api {
+	@handler Register
+	post /auth/register (RegisterReq) returns (UserResp)
+
+	@handler Login
+	post /auth/login (LoginReq) returns (LoginResp)
+
+	@handler Logout
+	post /auth/logout returns (EmptyResp)
+}
+
+@server(
+	jwt: Auth
+	middleware: Audit
+	group: user
+	prefix: /api/v1
+)
+service usercenter-api {
+	@handler GetMe
+	get /users/me returns (UserResp)
+
+	@handler GetUser
+	get /users/:userId (GetUserReq) returns (UserResp)
+
+	@handler UpdateProfile
+	patch /users/me (UpdateProfileReq) returns (UserResp)
+
+	@handler ChangePassword
+	patch /users/me/password (ChangePasswordReq) returns (EmptyResp)
+}

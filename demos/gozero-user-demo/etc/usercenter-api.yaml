@@ -1,0 +1,25 @@
+Name: usercenter-api
+Host: 0.0.0.0
+Port: 8888
+Timeout: 5000
+
+Auth:
+  AccessSecret: "replace-with-a-long-secret"
+  AccessExpire: 7200
+
+MySQL:
+  DataSource: "root:123456@tcp(127.0.0.1:3306)/usercenter?charset=utf8mb4&parseTime=true&loc=Local"
+  MaxOpenConns: 20
+  MaxIdleConns: 10
+  ConnMaxLifetime: 60
+
+Redis:
+  Host: 127.0.0.1:6380
+  Type: node
+  Pass: ""
+
+Cache:
+  UserProfileSeconds: 300
+
+Session:
+  TokenPrefix: "usercenter:token:"

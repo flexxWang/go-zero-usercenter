@@ -1,0 +1,6 @@
+go 1.26
+
+use (
+	./demos/basic-go-demo
+	./demos/gozero-user-demo
+)
